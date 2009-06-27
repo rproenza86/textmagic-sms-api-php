@@ -36,11 +36,12 @@ class TextMagicAPI {
      * @var array $config
      */
 	private $config = array(
-			'username'	    => '',
-			'password'	    => '',
-			'gateway'	    => 'https://www.textmagic.com/app/api',
-			'conn_timeout'	=> 10,
-			'max_length'    => 3
+			'username'	     => '',
+			'password'	     => '',
+			'gateway'	     => 'https://www.textmagic.com/app/api?',
+			'conn_timeout'	 => 10,
+			'max_length'     => 3,
+			'sending_method' => 'curl'
 		);
 	/**
      * Connection config values can either be set through constructor's associative array parameter or through @var config
@@ -350,7 +351,7 @@ class TextMagicAPI {
 	}
 	
 	/**
-     * CURL request wrapper
+     * HTTP abstract request wrapper
      *
      * @param  array $params associative array of request parameters
      * @return string
@@ -359,32 +360,17 @@ class TextMagicAPI {
 		$params['username'] = $this->config['username'];
 		$params['password'] = $this->config['password'];
 		
-		$ch = curl_init($this->config['gateway']);
-
-        curl_setopt_array($ch, array(
-        	CURLOPT_POST => true,
-        	CURLOPT_RETURNTRANSFER => true,
-        	CURLOPT_TIMEOUT => $this->config['conn_timeout'],
-        	CURLOPT_POSTFIELDS  => $params,
-//        	CURLOPT_VERBOSE => 1
-        ));
-
-        $raw_data = curl_exec($ch);
-        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        
-
-//        var_dump($raw_data);
-        
-		if ($http_code != 200){
-			if ($http_code){
-				
-				throw new Exception("Bad response from remote server: HTTP status code $http_code");
-			} else {
-				throw new Exception("Couldn't connect to remote server");
-			}
-		}
-        
+		if ($this->config['sending_method'] == 'curl') {
+			
+			$raw_data = $this->executeCURLRequestAndReturn($params);
+			
+		} elseif($this->config['sending_method'] == 'fopen') {
+			
+			$raw_data = $this->executeFOpenRequestAndReturn($params);
+			
+		} else
+			throw new Exception("Unsupported sending method");
+		
         $json = json_decode($raw_data, true);
         
         if (array_key_exists('error_code', $json)) {
@@ -429,6 +415,68 @@ class TextMagicAPI {
         }
 
 		return $json;		 
+	}
+	
+	/**
+     * CURL request wrapper
+     *
+     * @param  array $params associative array of request parameters
+     * @return string
+    */
+	private function executeCURLRequestAndReturn($params) {
+		if (!extension_loaded('curl')) {
+            die ("This SMS API class can not work without CURL PHP module! Try using fopen sending method.");
+        }
+		
+		$ch = curl_init($this->config['gateway']);
+
+        curl_setopt_array($ch, array(
+        	CURLOPT_POST => true,
+        	CURLOPT_RETURNTRANSFER => true,
+        	CURLOPT_TIMEOUT => $this->config['conn_timeout'],
+        	CURLOPT_POSTFIELDS  => $params,
+//        	CURLOPT_VERBOSE => 1
+        ));
+
+        $raw_data = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+		if ($http_code != 200){
+			if ($http_code){
+				
+				throw new Exception("Bad response from remote server: HTTP status code $http_code");
+			} else {
+				throw new Exception("Couldn't connect to remote server");
+			}
+		}
+		return $raw_data;
+	}
+	
+	/**
+     * fopen request wrapper
+     *
+     * @param  array $params associative array of request parameters
+     * @return string
+    */
+	private function executeFOpenRequestAndReturn($params) {
+		$raw_data = '';
+			
+		$url = $this->config['gateway'];
+		foreach ($params as $key=>$value) {
+			$url .= "&" . $key . "=" . $value ;
+		}
+		
+		$handler = @fopen ($url, 'r');
+		if ($handler) {
+			while ($line = @fgets($handler,1024)) {
+				$raw_data .= $line;
+			}
+			fclose ($handler);
+		} else {
+			throw new Exception("Error while executing fopen sending method!<br>Please check does PHP have OpenSSL support.");
+		}
+		return $raw_data;
 	}
 
 }
