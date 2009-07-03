@@ -46,7 +46,7 @@ class TextMagicAPI
     const IP_ADDRESS_IS_NOT_ALLOWED    = 8;
     const WRONG_PHONE_FORMAT           = 9;
     const WRONG_PARAMETER_VALUE        = 10;
-    const DAILY_REQUESTS_LIMT_EXCEEDED = 11;
+    const DAILY_REQUESTS_LIMIT_EXCEEDED = 11;
     const TOO_MANY_ITEMS               = 12;
     const DISABLED_ACCOUNT             = 13;
     const UNKNOWN_MESSAGE_ID           = 14;
@@ -435,7 +435,7 @@ class TextMagicAPI
             case self::WRONG_PHONE_FORMAT:
                       throw new WrongPhoneFormatException();
                 break;
-            case self::DAILY_REQUESTS_LIMT_EXCEEDED:
+            case self::DAILY_REQUESTS_LIMIT_EXCEEDED:
                       throw new RequestsLimitExceededException();
                 break;
             case self::DISABLED_ACCOUNT:
