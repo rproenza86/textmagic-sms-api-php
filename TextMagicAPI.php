@@ -485,6 +485,7 @@ class TextMagicAPI
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => $this->_config['conn_timeout'],
             CURLOPT_POSTFIELDS  => $params,
+            CURLOPT_SSL_VERIFYPEER => false,
             //CURLOPT_VERBOSE => 1
         ));
 
