@@ -68,7 +68,7 @@ class TextMagicAPI
             'gateway'          => 'https://www.textmagic.com/app/api?',
             'conn_timeout'     => 10,
             'max_length'       => 3,
-            'sending_method'   => 'curl'
+            'sending_method'   => 'fopen',
         );
     /**
      * Connection config values can either be set through constructor's associative 
