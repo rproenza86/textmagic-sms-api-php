@@ -26,6 +26,7 @@ require_once 'TooManyItemsException.php';
 require_once 'WrongPhoneFormatException.php';
 require_once 'LowBalanceException.php';
 require_once 'UnicodeSymbolsDetectedException.php';
+require_once 'EnvChecker.php';
 
 /**
  * TextMagic SMS API wrapper class
@@ -66,6 +67,7 @@ class TextMagicAPI
             'username'         => '',
             'password'         => '',
             'gateway'          => 'https://www.textmagic.com/app/api?',
+            'gateway_no_ssl'   => 'http://www.textmagic.com/app/api?',
             'conn_timeout'     => 10,
             'max_length'       => 3,
             'sending_method'   => 'fopen',
@@ -132,7 +134,7 @@ class TextMagicAPI
             $json = $this->_doHTTPRequest($params);
             
             $results                = array();
-            $results['messages']    = $json['message_id']; 
+            $results['messages']    = $json['message_id'];
             $results['sent_text']   = $json['sent_text'];
             $results['parts_count'] = $json['parts_count'];
             
@@ -213,7 +215,7 @@ class TextMagicAPI
     {
         if (!is_array($ids) || $ids === array()) {
             throw new Exception("ids type mismatch");
-        }        
+        }
         if (count($ids) > self::MAXIMUM_IDS_PER_REQUEST) {
             throw new TooManyItemsException();
         }
@@ -478,7 +480,19 @@ class TextMagicAPI
             die ("cURL extenstion isn't loaded! Try using fopen sending method.");
         }
         
-        $ch = curl_init($this->_config['gateway']);
+
+        // checking OpenSSL
+        $environmentChecker = new EnvChecker;
+        if ($environmentChecker->checkOpenSSL()) {
+            // OpenSSL not found
+            // We should use HTTP instead of HTTPS
+            $ch = curl_init($this->_config['gateway_no_ssl']);
+        } else {
+            // We use HTTPS
+            $ch = curl_init($this->_config['gateway']);
+        }
+
+        
 
         curl_setopt_array($ch, array(
             CURLOPT_POST => true,
@@ -513,8 +527,18 @@ class TextMagicAPI
     private function _executeFOpenRequestAndReturn($params)
     {
         $raw_data = '';
-            
+
         $url = $this->_config['gateway'];
+
+        // checking OpenSSL
+        $environmentChecker = new EnvChecker;
+        if ($environmentChecker->checkOpenSSL()) {
+            // OpenSSL not found
+            // We should use HTTP instead of HTTPS
+            $url = $this->_config['gateway_no_ssl'];
+        }
+        
+
         foreach ($params as $key=>$value) {
             $url .= "&" . $key . "=" . $value;
         }
